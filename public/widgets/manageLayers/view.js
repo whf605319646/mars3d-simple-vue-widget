@@ -78,17 +78,17 @@ function initWidgetView(_thisWidget) {
         }
     }
     $.fn.zTree.init($("#treeOverlays"), setting, zNodes);
- 
+
 }
 
 
 
 function addNode(item) {
-    var zTree = $.fn.zTree.getZTreeObj("treeOverlays");
+    var treeObj = $.fn.zTree.getZTreeObj("treeOverlays");
 
     var parentNode;
     if (item.pid && item.pid != -1)
-        parentNode = zTree.getNodeByParam("id", item.pid, null);
+        parentNode = treeObj.getNodeByParam("id", item.pid, null);
 
     var node = {
         id: item.id,
@@ -115,17 +115,28 @@ function addNode(item) {
         layersObj[node._key] = item;
     }
 
-    zTree.addNodes(parentNode, 0, [node], true);
+    treeObj.addNodes(parentNode, 0, [node], true);
 }
 
 function removeNode(item) {
-    var zTree = $.fn.zTree.getZTreeObj("treeOverlays");
+    var treeObj = $.fn.zTree.getZTreeObj("treeOverlays");
 
-    var node = zTree.getNodeByParam("id", item.id, null);
+    var node = treeObj.getNodeByParam("id", item.id, null);
     if (node)
-        zTree.removeNode(node);
+        treeObj.removeNode(node);
 }
 
+function updateNode(item) {
+    var treeObj = $.fn.zTree.getZTreeObj("treeOverlays");
+
+    var node = treeObj.getNodeByParam("id", item.id, null);
+    if (!node || node.checked == item.visible) return
+
+    node.checkedOld = node.checked;
+    node.checked = item.visible;
+
+    treeObj.updateNode(node);
+}
 
 //===================================双击定位图层====================================
 function treeOverlays_onClick(e, treeId, treeNode, clickFlag) {
@@ -149,9 +160,9 @@ function treeOverlays_onDblClick(event, treeId, treeNode) {
 
 function treeOverlays_onCheck(e, treeId, treeNode) {
 
-    var zTree = $.fn.zTree.getZTreeObj(treeId);
+    var treeObj = $.fn.zTree.getZTreeObj(treeId);
     //获得所有改变check状态的节点
-    var changedNodes = zTree.getChangeCheckedNodes();
+    var changedNodes = treeObj.getChangeCheckedNodes();
     for (var i = 0; i < changedNodes.length; i++) {
         var treeNode = changedNodes[i];
         treeNode.checkedOld = treeNode.checked;
@@ -165,16 +176,16 @@ function treeOverlays_onCheck(e, treeId, treeNode) {
             $("#" + treeNode.tId + "_range").hide();
 
         //特殊处理同目录下的单选的互斥的节点，可在config对应图层节点中配置"radio":true即可 
-        if (layer.radio && treeNode.checked) { 
+        if (layer.radio && treeNode.checked) {
             function filter(node) {
                 var item = layersObj[node._key];
                 return item.radio && item.pid == layer.pid && node._key != treeNode._key;
             }
-            var nodes = zTree.getNodesByFilter(filter, false, treeNode.getParentNode());
+            var nodes = treeObj.getNodesByFilter(filter, false, treeNode.getParentNode());
             for (var nidx = 0; nidx < nodes.length; nidx++) {
 
                 nodes[nidx].checkedOld = false;
-                zTree.checkNode(nodes[nidx], false, true);
+                treeObj.checkNode(nodes[nidx], false, true);
 
                 $("#" + nodes[nidx].tId + "_range").hide();
 
@@ -283,13 +294,13 @@ function bindRightMenuEvnet() {
 
 //移动节点及图层位置
 function moveNodeAndLayer(type) {
-    var zTree = $.fn.zTree.getZTreeObj(lastRightClickTreeId);
+    var treeObj = $.fn.zTree.getZTreeObj(lastRightClickTreeId);
 
     //获得当前节点的所有同级节点
     var childNodes;
     var parent = lastRightClickTreeNode.getParentNode();
     if (parent == null) {
-        childNodes = zTree.getNodes();
+        childNodes = treeObj.getNodes();
     } else {
         childNodes = parent.children;
     }
@@ -302,7 +313,7 @@ function moveNodeAndLayer(type) {
         case "up": //图层上移一层
             var moveNode = thisNode.getPreNode();
             if (moveNode) {
-                zTree.moveNode(moveNode, thisNode, "prev");
+                treeObj.moveNode(moveNode, thisNode, "prev");
                 var moveLayer = layersObj[moveNode._key];
 
                 exchangeLayer(thisLayer, moveLayer);
@@ -315,7 +326,7 @@ function moveNodeAndLayer(type) {
                 //冒泡交换
                 var moveNode = thisNode.getPreNode();
                 if (moveNode) {
-                    zTree.moveNode(moveNode, thisNode, "prev");
+                    treeObj.moveNode(moveNode, thisNode, "prev");
 
                     var moveLayer = layersObj[moveNode._key];
                     exchangeLayer(thisLayer, moveLayer);
@@ -326,7 +337,7 @@ function moveNodeAndLayer(type) {
         case "down": //图层下移一层
             var moveNode = thisNode.getNextNode();
             if (moveNode) {
-                zTree.moveNode(moveNode, thisNode, "next");
+                treeObj.moveNode(moveNode, thisNode, "next");
 
                 var moveLayer = layersObj[moveNode._key];
                 exchangeLayer(thisLayer, moveLayer);
@@ -339,7 +350,7 @@ function moveNodeAndLayer(type) {
                 //冒泡交换
                 var moveNode = thisNode.getNextNode();
                 if (moveNode) {
-                    zTree.moveNode(moveNode, thisNode, "next");
+                    treeObj.moveNode(moveNode, thisNode, "next");
 
                     var moveLayer = layersObj[moveNode._key];
                     exchangeLayer(thisLayer, moveLayer);
@@ -377,10 +388,10 @@ function exchangeLayer(layer1, layer2) {
 
 //地图图层添加移除监听，自动勾选
 function updateCheckd(name, checked) {
-    var zTree = $.fn.zTree.getZTreeObj("treeOverlays");
-    var nodes = zTree.getNodesByParam("name", name, null);
+    var treeObj = $.fn.zTree.getZTreeObj("treeOverlays");
+    var nodes = treeObj.getNodesByParam("name", name, null);
     if (nodes && nodes.length > 0)
-        zTree.checkNode(nodes[0], checked, false);
+        treeObj.checkNode(nodes[0], checked, false);
     else
         console.log('未在图层树上找到图层“' + name + '”，无法自动勾选处理');
 }

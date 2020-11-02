@@ -16,6 +16,8 @@
         //初始化[仅执行1次]
         create() {
 
+            this.viewer.mars
+
         }
         //每个窗口创建完成后调用
         winCreateOK(opt, result) {
@@ -23,15 +25,22 @@
         }
         //打开激活
         activate() {
-
-
+            //监听事件，联动勾选状态
+            this.viewer.mars.on(mars3d.event.add, this.onLyaerVisibleChange, this);
+            this.viewer.mars.on(mars3d.event.remove, this.onLyaerVisibleChange, this);
         }
         //关闭释放
         disable() {
             this.viewWindow = null;
 
+            this.viewer.mars.off(mars3d.event.add, this.onLyaerVisibleChange, this);
+            this.viewer.mars.off(mars3d.event.remove, this.onLyaerVisibleChange, this);
         }
-
+        onLyaerVisibleChange(e) {
+            if (this.isActivate && this.viewWindow) {
+                this.viewWindow.updateNode(e.sourceTarget.options);
+            }
+        }
         //绑定自定义的非配置图层到图层控制控件中
         addOverlay(item) {
 
@@ -76,7 +85,9 @@
             }
         }
 
-        get hasManagerBaseMaps() { return true }
+        get hasManagerBaseMaps() {
+            return true
+        }
         getLayers() {
             if (this._layers == null) {
                 var layers = [];
